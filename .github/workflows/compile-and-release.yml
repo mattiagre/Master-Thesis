@@ -1,0 +1,40 @@
+name: Compile LaTeX and Create Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create TikZ cache folder
+      run:
+        mkdir tikz-cache
+
+    - name: Compile LaTeX document
+      uses: xu-cheng/latex-action@v3
+      with:
+        root_file: Gregnanin_Mattia.tex
+        latexmk_shell_escape: true
+    
+    - name: Install Ghostscript 10.04.0
+      run: |
+        wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/gs_10.04.0_amd64_snap.tgz
+        tar -xvzf gs_10.04.0_amd64_snap.tgz
+        cd gs_10.04.0_amd64_snap
+        sudo snap install --devmode gs_10.04.0_amd64.snap
+
+    - name: Convert PDF to PDF/A
+      run: |
+        cd pdfa
+        gs -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=3 -dPDFACompatibilityPolicy=2 -sColorConversionStrategy=RGB -o Gregnanin_Mattia.pdf ${{ github.workspace }}/pdfa/PDFA_def.ps ../Gregnanin_Mattia.pdf
+    
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v2
+      with: 
+        files: ./pdfa/Gregnanin_Mattia.pdf
